@@ -1,0 +1,349 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Stack;
+
+public class MainFrame {
+    public static void main(String[] args) {
+
+        JFrame frame = new JFrame("Java Swing Convex Hull Point Marker App");
+        frame.setSize(800, 600);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        ConvexHullDrawingPanel drawingPanel = new ConvexHullDrawingPanel();
+
+        frame.add(drawingPanel);
+
+        frame.setLocationRelativeTo(null);
+
+        frame.setVisible(true);
+    }
+}
+
+class ConvexHullDrawingPanel extends JPanel {
+
+    private final List<Point> markedPoints = new ArrayList<>();
+    private List<Point> convexHull = new ArrayList<>();
+
+    JButton graham;
+    JButton jarvis;
+    JButton chan;
+    JButton quickElimination;
+    JButton bruteForce;
+    JButton reset;
+    public JLabel executionTime;
+
+    public void resetSpace() {
+        markedPoints.clear();
+        convexHull.clear();
+        repaint();
+    }
+
+    public ConvexHullDrawingPanel() {
+        setBackground(Color.BLACK);
+
+        graham = new JButton("Graham Scan");
+        reset = new JButton("Reset Space");
+        jarvis = new JButton("Jarvis March");
+        chan = new JButton("Chan's Algorithm");
+        quickElimination = new JButton("Quick Elimination");
+        bruteForce = new JButton("Brute Force");
+        executionTime = new JLabel();
+        executionTime.setText("time taken= :");
+
+        reset.addActionListener(e -> resetSpace());
+
+        jarvis.addActionListener(e -> addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int x = e.getX();
+                int y = e.getY();
+
+                if (markedPoints.size() < 50) {
+                    markedPoints.add(new Point(x, y));
+
+                    LocalDateTime t1 = LocalDateTime.now();
+                    convexHull = calculateJarvisMarch(markedPoints);
+                    LocalDateTime t2 = LocalDateTime.now();
+                    Duration duration = Duration.between(t1, t2);
+                    executionTime.setText("Jarvis March - Time taken: " + duration);
+
+                    repaint();
+                }
+            }
+        }));
+
+        graham.addActionListener(e -> addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int x = e.getX();
+                int y = e.getY();
+
+                if (markedPoints.size() < 50) {
+                    markedPoints.add(new Point(x, y));
+
+                    LocalDateTime t1 = LocalDateTime.now();
+                    convexHull = calculateConvexHull(markedPoints);
+                    LocalDateTime t2 = LocalDateTime.now();
+                    Duration duration = Duration.between(t1, t2);
+                    executionTime.setText("Graham Scan - Time taken: " + duration);
+
+                    repaint();
+                }
+            }
+        }));
+
+        chan.addActionListener(e -> addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int x = e.getX();
+                int y = e.getY();
+
+                if (markedPoints.size() < 50) {
+                    markedPoints.add(new Point(x, y));
+
+                    LocalDateTime t1 = LocalDateTime.now();
+                    convexHull = calculateChanAlgorithm(markedPoints);
+                    LocalDateTime t2 = LocalDateTime.now();
+                    Duration duration = Duration.between(t1, t2);
+                    executionTime.setText("Chan Algo - Time taken: " + duration);
+
+                    repaint();
+                }
+            }
+        }));
+
+        quickElimination.addActionListener(e -> addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int x = e.getX();
+                int y = e.getY();
+
+                if (markedPoints.size() < 50) {
+                    markedPoints.add(new Point(x, y));
+
+                    LocalDateTime t1 = LocalDateTime.now();
+                    convexHull = calculateQuickElimination(markedPoints);
+                    LocalDateTime t2 = LocalDateTime.now();
+                    Duration duration = Duration.between(t1, t2);
+                    executionTime.setText("Quick Elimination - Time taken: " + duration);
+
+                    repaint();
+                }
+            }
+        }));
+
+        bruteForce.addActionListener(e -> addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int x = e.getX();
+                int y = e.getY();
+
+                if (markedPoints.size() < 50) {
+                    markedPoints.add(new Point(x, y));
+
+                    LocalDateTime t1 = LocalDateTime.now();
+                    convexHull = calculateBruteForceConvexHull(markedPoints);
+                    LocalDateTime t2 = LocalDateTime.now();
+                    Duration duration = Duration.between(t1, t2);
+                    executionTime.setText("Brute Force - Time taken: " + duration);
+
+                    repaint();
+                }
+            }
+        }));
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(graham);
+        buttonPanel.add(reset);
+        buttonPanel.add(jarvis);
+        buttonPanel.add(chan);
+        buttonPanel.add(quickElimination);
+        buttonPanel.add(bruteForce);
+
+        add(buttonPanel, BorderLayout.NORTH);
+        JPanel textPanel = new JPanel();
+        textPanel.add(executionTime);
+
+        add(textPanel, BorderLayout.EAST);
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        g.setColor(Color.LIGHT_GRAY);
+        for (int i = 1; i < convexHull.size(); i++) {
+            Point start = convexHull.get(i - 1);
+            Point end = convexHull.get(i);
+            g.drawLine(start.x, start.y, end.x, end.y);
+        }
+        if (!convexHull.isEmpty()) {
+            Point start = convexHull.get(convexHull.size() - 1);
+            Point end = convexHull.get(0);
+            g.drawLine(start.x, start.y, end.x, end.y);
+        }
+
+        for (Point point : markedPoints) {
+            g.setColor(Color.YELLOW);
+            g.fillOval(point.x - 5, point.y - 5, 10, 10);
+
+            g.setColor(Color.WHITE);
+            g.drawString("(" + point.x + ", " + point.y + ")", point.x + 10, point.y - 10);
+        }
+    }
+
+    private List<Point> calculateJarvisMarch(List<Point> points) {
+        if (points.size() < 3) {
+            return points;
+        }
+        List<Point> convexHull = new ArrayList<>();
+        int left = 0;
+        for (int i = 0; i < points.size(); i++) {
+            if (points.get(i).x < points.get(left).x) {
+                left = i;
+            }
+        }
+        int p = left, q;
+        do {
+            convexHull.add(points.get(p));
+            q = (p + 1) % points.size();
+            for (int i = 0; i < points.size(); i++) {
+                if (orientation(points.get(p), points.get(i), points.get(q)) == 2) {
+                    q = i;
+                }
+            }
+            p = q;
+        } while (p != left);
+        return convexHull;
+    }
+
+    private List<Point> calculateConvexHull(List<Point> points) {
+        if (points.size() < 3) {
+            return points;
+        }
+
+        Point reference = Collections.min(points, Comparator.comparing(Point::getY));
+        points.sort((p1, p2) -> {
+            double angle1 = Math.atan2(p1.y - reference.y, p1.x - reference.x);
+            double angle2 = Math.atan2(p2.y - reference.y, p2.x - reference.x);
+            return Double.compare(angle1, angle2);
+        });
+
+        Stack<Point> stack = new Stack<>();
+        stack.push(points.get(0));
+        stack.push(points.get(1));
+
+        for (int i = 2; i < points.size(); i++) {
+            Point top = stack.pop();
+            while (!stack.isEmpty() && orientation(stack.peek(), top, points.get(i)) != 2) {
+                top = stack.pop();
+            }
+            stack.push(top);
+            stack.push(points.get(i));
+        }
+
+        return new ArrayList<>(stack);
+    }
+
+    private List<Point> calculateChanAlgorithm(List<Point> points) {
+        List<Point> convexHull = new ArrayList<>();
+        List<List<Point>> pointGroups = splitPointsIntoGroups(points);
+
+        for (List<Point> group : pointGroups) {
+            convexHull.addAll(calculateConvexHull(group));
+        }
+
+        return calculateConvexHull(convexHull);
+    }
+
+    private List<List<Point>> splitPointsIntoGroups(List<Point> points) {
+        int k = 5;
+        List<List<Point>> pointGroups = new ArrayList<>();
+
+        for (int i = 0; i < points.size(); i += k) {
+            int endIndex = Math.min(i + k, points.size());
+            List<Point> group = new ArrayList<>(points.subList(i, endIndex));
+            pointGroups.add(group);
+        }
+
+        return pointGroups;
+    }
+
+    private int orientation(Point p, Point q, Point r) {
+        int val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+        if (val == 0) {
+            return 0;
+        }
+        return (val > 0) ? 1 : 2;
+    }
+
+    private List<Point> calculateQuickElimination(List<Point> points) {
+        List<Point> upperHull = new ArrayList<>();
+        List<Point> lowerHull = new ArrayList<>();
+
+        for (Point point : points) {
+            while (upperHull.size() >= 2 &&
+                    orientation(upperHull.get(upperHull.size() - 2), upperHull.get(upperHull.size() - 1), point) != 2) {
+                upperHull.remove(upperHull.size() - 1);
+            }
+            upperHull.add(point);
+        }
+
+        for (int i = points.size() - 1; i >= 0; i--) {
+            while (lowerHull.size() >= 2 &&
+                    orientation(lowerHull.get(lowerHull.size() - 2), lowerHull.get(lowerHull.size() - 1), points.get(i)) != 2) {
+                lowerHull.remove(lowerHull.size() - 1);
+            }
+            lowerHull.add(points.get(i));
+        }
+
+        if (lowerHull.size() >= 2) {
+            upperHull.addAll(lowerHull.subList(1, lowerHull.size() - 1));
+        }
+
+        return upperHull;
+    }
+
+    private List<Point> calculateBruteForceConvexHull(List<Point> points) {
+        List<Point> convexHull = new ArrayList<>();
+        int n = points.size();
+
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                int orientation = 0;
+                boolean allPointsOnOneSide = true;
+
+                for (int k = 0; k < n; k++) {
+                    if (k != i && k != j) {
+                        int o = orientation(points.get(i), points.get(j), points.get(k));
+                        if (o != 0) {
+                            orientation = o;
+                        }
+
+                        if (o != orientation) {
+                            allPointsOnOneSide = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (allPointsOnOneSide) {
+                    convexHull.add(points.get(i));
+                    convexHull.add(points.get(j));
+                }
+            }
+        }
+
+        return convexHull;
+    }
+}
